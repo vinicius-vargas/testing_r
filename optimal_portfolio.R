@@ -4,8 +4,8 @@ library(PerformanceAnalytics)
 library(ggplot2)
 
 
+
 # set begin-end date and stock namelist
-begin_date <- "2014-01-01"
 end_date <- "2019-12-20"
 
 data_part <- 0.75
