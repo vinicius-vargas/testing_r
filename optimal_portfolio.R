@@ -2,14 +2,14 @@ library(xts)
 library(quantmod)
 library(PerformanceAnalytics)
 library(ggplot2)
-
+library(tidyverse)
 
 
 # Test
 
 # set begin-end date and stock namelist
-begin_date <- "2014-06-01"
-end_date <- "2019-12-20"
+begin_date <- "2014-01-01"
+end_date <- "2019-12-31"
 
 data_part <- 0.75
 
@@ -43,6 +43,9 @@ for (stock_index in 1:length(stock_namelist))
   )
 )
 
+prices <- prices %>% na.omit()
+
+
 colnames(prices) <- stock_namelist
 indexClass(prices) <- "Date"
 
@@ -51,6 +54,7 @@ indexClass(prices) <- "Date"
 X_log <- diff(log(prices))[-1]
 X_log[is.na(X_log)] <- 0
 
+lag(prices)
 
 X_lin <- (prices / lag(prices) - 1)[-1]
 X_lin[is.na(X_lin)] <- 0
@@ -90,7 +94,7 @@ portolioMarkowitz <- function(mu, Sigma, lmd = 0.5) {
   w <- Variable(nrow(Sigma))
   
   prob <- Problem(Maximize(t(mu) %*% w - lmd * quad_form(w, Sigma)),
-                  constraints = list(w >= 0, w <= 0.5, sum(w) == 1))
+                  constraints = list(w >= 0, w <= 0.1, sum(w) == 1))
   
   result <- solve(prob)
   
@@ -101,7 +105,7 @@ portolioGMVP <- function(Sigma) {
   w <- Variable(nrow(Sigma))
   
   prob <- Problem(Minimize(quad_form(w, Sigma)),
-                  constraints = list(w >= 0, w <= 0.5, sum(w) == 1))
+                  constraints = list(w >= 0, w <= 0.1, sum(w) == 1))
   
   result <- solve(prob)
   
@@ -140,7 +144,7 @@ portfolioDR <- function(X, lmd = 0.5, alpha = 2) {
   
   prob <- Problem(Maximize(t(w) %*% mu - (lmd / T) * 
                              sum(pos(t(mu) %*% w - X %*% w)) ^ alpha),
-                  constraints = list(w >= 0, w <= 0.5, sum(w) == 1))
+                  constraints = list(w >= 0, w <= 0.1, sum(w) == 1))
   
   result <- solve(prob)
   
@@ -185,7 +189,7 @@ portolioCVaR <- function(X, lmd = 0.5, alpha = 0.95) {
         1 - alpha
       ))) * sum(z)),
       constraints = list(z >= 0, z >= -X %*% w - zeta,
-                         w >= 0, w <= 0.5, sum(w) == 1)
+                         w >= 0, w <= 0.1, sum(w) == 1)
     )
   
   result <- solve(prob)
@@ -222,7 +226,7 @@ portfolioMaxDD <- function(X, c = 0.2) {
   # problem
   prob <- Problem(
     Maximize(t(w) %*% mu),
-    constraints = list(w >= 0, w <= 0.5, sum(w) == 1,
+    constraints = list(w >= 0, w <= 0.1, sum(w) == 1,
                        u <= X_cum %*% w + c,
                        u >= X_cum %*% w,
                        u[-1] >= u[-T])
@@ -266,7 +270,7 @@ portfolioAveDD <- function(X, c = 0.2) {
   u <- Variable(T)
   # problem
   prob <- Problem(Maximize(t(w) %*% mu),
-                  constraints = list(w >= 0, w <= 0.5,sum(w) == 1,
+                  constraints = list(w >= 0, w <= 0.1,sum(w) == 1,
                                      mean(u) <= mean(X_cum %*% w) + c,
                                      u >= X_cum %*% w,
                                      u[-1] >= u[-T]))
@@ -316,7 +320,7 @@ portfolioCDaR <- function(X, c = 0.1, alpha = 0.95) {
   prob <- Problem(
     Maximize(t(w) %*% mu),
     constraints = list(
-      w >= 0, w <= 0.5,
+      w >= 0, w <= 0.1,
       sum(w) == 1,
       zeta + (1 / (T * (1 - alpha))) * sum(z) <= c,
       z >= 0,
@@ -356,7 +360,7 @@ t(table.AnnualizedReturns(ret_all_tst))
 
 
 
-port_to_be <- w_CDaR095_c016
+port_to_be <- w_AveDD_c008
 
 test <- t(as.list(round(port_to_be, 4)))
 colnames(test) <- stock_namelist
