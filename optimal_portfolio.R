@@ -44,7 +44,7 @@ for (stock_index in 1:length(stock_namelist))
 )
 
 prices <- prices %>% na.omit()
-
+str(prices)
 
 colnames(prices) <- stock_namelist
 indexClass(prices) <- "Date"
@@ -54,9 +54,8 @@ indexClass(prices) <- "Date"
 X_log <- diff(log(prices))[-1]
 X_log[is.na(X_log)] <- 0
 
-lag(prices)
 
-X_lin <- (prices / lag(prices) - 1)[-1]
+X_lin <- (prices / stats::lag(prices) - 1)[-1]
 X_lin[is.na(X_lin)] <- 0
 
 N <- ncol(X_log)  # number of stocks
@@ -85,7 +84,7 @@ X_lin_tst <- X_lin[(T_trn + 1):T,]
 mu <- colMeans(X_log_trn)
 
 Sigma <- cov(X_log_trn)
-
+class(prob)
 
 ###################### MARKOWITZ PORTFOLIO OPTIMIZATION ######################
 library(CVXR)
@@ -94,7 +93,7 @@ portolioMarkowitz <- function(mu, Sigma, lmd = 0.5) {
   w <- Variable(nrow(Sigma))
   
   prob <- Problem(Maximize(t(mu) %*% w - lmd * quad_form(w, Sigma)),
-                  constraints = list(w >= 0, w <= 0.1, sum(w) == 1))
+                  constraints = list(w >= 0, w <= 0.1, sum(w) == 1), solver = "SCS")
   
   result <- solve(prob)
   
